@@ -23,7 +23,7 @@ from flask_bootstrap import Bootstrap5
 from flask_wtf import CSRFProtect
 
 from uploader import orchestrator
-from uploader.helpers import utils
+from uploader.helpers import utils, cli
 from uploader.models.user import User
 
 MODULE_NAME = "uploader.app"
@@ -71,6 +71,7 @@ def create_app(config_file: Path) -> flask.Flask:
 
     storage_path = orchestrator.get_storage_path(config_file=config_file)
     chunk_path = orchestrator.get_chunk_path(config_file=config_file)
+    hostname = cli.get_hostname()
 
     logger.info(f"Using storage path: {storage_path}")
     logger.info(f"Using chunk path: {chunk_path}")
@@ -78,6 +79,7 @@ def create_app(config_file: Path) -> flask.Flask:
     app.secret_key = orchestrator.get_secret_key(config_file=config_file)
     app.config["STORAGE_PATH"] = str(storage_path)
     app.config["CHUNK_PATH"] = str(chunk_path)
+    app.config["HOSTNAME"] = hostname
 
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"  # type: ignore

@@ -33,3 +33,17 @@ def remove_directory(directory: Path) -> None:
     """
     logger.debug(f"Removing directory: {directory}")
     shutil.rmtree(directory)
+
+
+def get_hostname() -> str:
+    """
+    Returns the hostname of the system.
+
+    Uses the command `hostname` to get the hostname.
+    """
+    hostname = subprocess.check_output(["hostname"])
+    hostname = hostname.decode("utf-8").strip()
+
+    logger.debug(f"Hostname: {hostname}")
+
+    return hostname
