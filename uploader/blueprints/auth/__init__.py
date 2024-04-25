@@ -63,7 +63,9 @@ def login() -> flask.Response:
         return flask.redirect(flask.url_for("auth.login"))  # type: ignore
 
     return flask.Response(
-        response=flask.render_template("login.html", metadata=metadata, form=form),
+        response=flask.render_template(
+            "login.html", metadata=metadata, form=form, title="Login"
+        ),
         status=200,
     )
 
@@ -108,6 +110,8 @@ def register() -> flask.Response:
         return flask.redirect(flask.url_for("auth.login"))  # type: ignore
 
     return flask.Response(
-        response=flask.render_template("register.html", metadata=metadata, form=form),
+        response=flask.render_template(
+            "register.html", metadata=metadata, form=form, title="Register"
+        ),
         status=200,
     )
