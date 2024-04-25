@@ -1,4 +1,4 @@
-# A Simple Flask File Uplaader
+# A Simple Flask File Uploader
 
 This is a simple file uploader built with Flask. It allows users to upload files to the server.
 
