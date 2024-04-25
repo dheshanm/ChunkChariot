@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<p><b>Healthcheck</b></p>
+<ul class="list-group">
+    <li class="list-group-item">Application is running on {{ host_name }}</li>
+    <li class="list-group-item">Server time is {{ server_time }}</li>
+</ul>
+
+{% if current_user.is_authenticated %}
+<p class="mt-2"><b>User</b></p>
+<ul class="list-group">
+    <li class="list-group-item">Logged in as <code>{{ current_user.username }}</code></li>
+    <li class="list-group-item">Your email is <code>{{ current_user.email }}</code></li>
+    <li class="list-group-item">User was created on <code>{{ current_user.created_at }}</code></li>
+</ul>
+
+<br>
+
+<button type="button" class="mt-3 btn btn-success" onclick="window.location.href='{{ url_for("upload.upload_file") }}'">Upload</button>
+
+{% else %}
+<button type="button" class="mt-3 btn btn-primary" onclick="window.location.href='{{ url_for("auth.login") }}'">Login</button>
+{% endif %}
+
+{% endblock %}
