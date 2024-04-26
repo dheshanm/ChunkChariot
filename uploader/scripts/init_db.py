@@ -10,7 +10,7 @@ file = Path(__file__)
 parent = file.parent
 ROOT = None
 for parent in file.parents:
-    if parent.name == "uploader":
+    if parent.name == "ChunkChariot":
         ROOT = parent
 sys.path.append(str(ROOT))
 

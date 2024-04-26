@@ -6,11 +6,11 @@ Implements a simple file server that allows users to upload files to the server.
 import sys
 from pathlib import Path
 
-file = Path("/Users/dm1447/dev/web/uploader/uploader/app.py")
+file = Path(__file__)
 parent = file.parent
 ROOT = None
 for parent in file.parents:
-    if parent.name == "uploader":
+    if parent.name == "ChunkChariot":
         ROOT = parent
 sys.path.append(str(ROOT))
 
