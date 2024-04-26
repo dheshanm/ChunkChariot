@@ -151,6 +151,23 @@ def execute_queries(
     return output
 
 
+def execute_insert_query(config_file: Path, query: str) -> str:
+    """
+    Executes an INSERT query on a returing the ID of the inserted row.
+
+    Args:
+        config_file (Path): The path to the configuration file.
+        query (str): The INSERT query to execute.
+
+    Returns:
+        str: The ID of the inserted row.
+    """
+
+    result = execute_queries(config_file=config_file, queries=[query])
+
+    return str(result[0][0][0])
+
+
 def get_db_connection(config_file: Path) -> sqlalchemy.engine.base.Engine:
     """
     Establishes a connection to the PostgreSQL database using the provided configuration file.

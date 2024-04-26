@@ -5,12 +5,12 @@
 
 <h2>Upload Files</h2>
 
-<div class="mt-3">
+<div class="mt-3" id="upload-form">
     {{ render_form(form) }}
 </div>
 
-<form action="{{ url_for('upload.upload_file') }}" method="POST" enctype="multipart/form-data" class="dropzone dz-clickable"
-    id="test-dropper">
+<form action="{{ url_for('upload.upload_file') }}" method="POST" enctype="multipart/form-data"
+    class="dropzone dz-clickable" id="test-dropper">
     <div class="fallback">
         <input name="file" type="file" />
     </div>
@@ -57,7 +57,7 @@
             maxFilesize: 1024 * 4,
             autoProcessQueue: false,
             autoQueue: true,
-            headers: { "X-CSRF-Token" : "{{ csrf_token() }}" },
+            headers: { "X-CSRF-Token": "{{ csrf_token() }}" },
             init: function () {
                 this.on("addedfile", function (file) {
                     document.getElementById('upload-btn').removeAttribute('disabled');
@@ -111,8 +111,14 @@
     init();
 
     document.getElementById('upload-btn').addEventListener('click', upload);
+    document.getElementById('submit-btn').addEventListener('click', function () {
+        // Parent Div
+        parent = document.getElementById('upload-form')
+        form = parent.getElementsByTagName('form')[0]
+        form.submit();
+    });
 
-    document.getElementById('uploaded_by').disabled = true;
+    document.getElementById('uploaded_by').readOnly = true;
 
 </script>
 {% endblock %}

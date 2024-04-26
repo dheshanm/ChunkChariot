@@ -19,6 +19,9 @@ from typing import List
 
 from uploader.helpers import db, utils
 from uploader.models.user import User
+from uploader.models.uploaded_file import UploadedFile
+from uploader.models.submission import Submission
+from uploader.models.submitted_files_map import SubmittedFilesMap
 
 MODULE_NAME = "init_db"
 
@@ -42,11 +45,17 @@ def init_db(config_file: Path):
     """
 
     drop_queries: List[str] = [
+        SubmittedFilesMap.drop_table_query(),
+        Submission.drop_table_query(),
+        UploadedFile.drop_table_query(),
         User.drop_table_query(),
     ]
 
     create_queries: List[str] = [
         User.create_table_query(),
+        UploadedFile.create_table_query(),
+        Submission.create_table_query(),
+        SubmittedFilesMap.create_table_query(),
     ]
 
     sql_queries: List[str] = drop_queries + create_queries

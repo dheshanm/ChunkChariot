@@ -58,10 +58,10 @@ class UploadForm(FlaskForm):
         description="Uses your REDCap ID",
     )
 
-    date_uploaded = wtforms.HiddenField(
-        "Date Uploaded",
-        validators=[wtforms.validators.DataRequired()],
-    )
+    # date_uploaded = wtforms.HiddenField(
+    #     "Date Uploaded",
+    #     validators=[wtforms.validators.DataRequired()],
+    # )
 
     files_uploaded = wtforms.HiddenField(
         "Files Uploaded",

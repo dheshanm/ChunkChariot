@@ -40,7 +40,7 @@ class RegisterForm(FlaskForm):
 
     submit = wtforms.SubmitField("Register")
 
-    def validate_email(self, email: wtforms.SearchField) -> None:
+    def validate_email(self, email: wtforms.StringField) -> None:
         """
         Validate email address.
         """
@@ -48,6 +48,19 @@ class RegisterForm(FlaskForm):
         if user:
             logger.info(f"Email already in use: {email.data}")
             raise wtforms.validators.ValidationError("Email already in use")
+
+        return None
+
+    def validate_username(self, username: wtforms.StringField) -> None:
+        """
+        Validate REDCap username.
+        """
+        user = User.find_by_username_query(username=username.data)  # type: ignore
+        if user:
+            logger.info(f"Username already in use: {username.data}")
+            raise wtforms.validators.ValidationError(
+                "Username already in use. If you already have an account, please login instead."
+            )
 
         return None
 

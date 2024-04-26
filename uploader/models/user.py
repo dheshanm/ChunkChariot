@@ -59,7 +59,9 @@ class User(flask_login.UserMixin):
         logger.debug(f"Checking password for {self.email}")
         logger.debug(f"Password: {self.password}")
         logger.debug(f"Given password: {password}")
-        return werkzeug.security.check_password_hash(pwhash=self.password, password=password)
+        return werkzeug.security.check_password_hash(
+            pwhash=self.password, password=password
+        )
 
     @staticmethod
     def create_table_query() -> str:
@@ -72,7 +74,7 @@ class User(flask_login.UserMixin):
         sql_query = """
         CREATE TABLE IF NOT EXISTS users (
             email TEXT NOT NULL PRIMARY KEY,
-            username TEXT NOT NULL,
+            username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             is_active BOOLEAN DEFAULT TRUE,
             role TEXT DEFAULT 'user',
@@ -128,33 +130,40 @@ class User(flask_login.UserMixin):
         logger.debug(f"User {self.email} saved to the database.")
         return None
 
-    # @staticmethod
-    # def find_by_username_query(username: str, config_file: Path) -> "Optional[User]":
-    #     """
-    #     Returns the query to find a user by username.
+    @staticmethod
+    def find_by_username_query(
+        username: str, config_file: Optional[Path] = None
+    ) -> "Optional[User]":
+        """
+        Returns the query to find a user by username.
 
-    #     Args:
-    #         username (str): The username of the user to find.
+        Args:
+            username (str): The username of the user to find.
+            config_file (Path): The path to the database configuration file.
 
-    #     Returns:
-    #         str: The query to find a user by username.
-    #     """
-    #     sql_query = f"""
-    #     SELECT * FROM users WHERE username = '{username}'
-    #     """
+        Returns:
+            str: The query to find a user by username.
+        """
+        if config_file is None:
+            config_file = utils.get_config_file_path()
 
-    #     df = db.execute_sql(config_file=config_file, query=sql_query)
+        sql_query = f"""
+        SELECT * FROM users WHERE username = '{username}'
+        """
 
-    #     if df.empty:
-    #         return None
+        df = db.execute_sql(config_file=config_file, query=sql_query)
 
-    #     user = User(
-    #         username=df.iloc[0]["username"],
-    #         email=df.iloc[0]["email"],
-    #         password=df.iloc[0]["password"],
-    #     )
+        if df.empty:
+            return None
 
-    #     return user
+        user = User(
+            username=df.iloc[0]["username"],
+            email=df.iloc[0]["email"],
+            password=df.iloc[0]["password_hash"],
+            created_at=df.iloc[0]["created_at"],
+        )
+
+        return user
 
     @staticmethod
     def find_by_email_query(

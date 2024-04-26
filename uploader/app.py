@@ -106,7 +106,7 @@ def create_app(config_file: Path) -> flask.Flask:
     def favicon():
         # send favicon from static folder
         return flask.send_from_directory(
-            app.root_path + "/static",
+            app.root_path + "/static",  # type: ignore
             "favicon.ico",
             mimetype="image/vnd.microsoft.icon",
             max_age=86400,

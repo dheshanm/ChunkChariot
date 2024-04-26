@@ -11,7 +11,6 @@ import collections
 import logging
 import threading
 import uuid
-from datetime import datetime
 from pathlib import Path
 from typing import DefaultDict, List
 
@@ -23,6 +22,9 @@ from uploader.blueprints.upload.models import UploadForm
 from uploader.models import Metadata
 from uploader.helpers import cli
 from uploader.models.user import User
+from uploader.models.uploaded_file import UploadedFile
+from uploader.models.submission import Submission
+from uploader.models.submitted_files_map import SubmittedFilesMap
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ upload_bp = flask.Blueprint(
 )
 
 
-@upload_bp.route("/", methods=["GET"])
+@upload_bp.route("/", methods=["GET", "POST"])
 @flask_login.login_required
 def upload_file() -> flask.Response:
     """
@@ -49,7 +51,6 @@ def upload_file() -> flask.Response:
     if flask.request.method == "GET":
         form = UploadForm()
 
-        form.date_uploaded.data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         form.uploaded_by.data = current_user.username
 
         return flask.Response(
@@ -57,6 +58,47 @@ def upload_file() -> flask.Response:
                 "form.html", metadata=metadata, title="Upload", form=form
             )
         )
+    elif flask.request.method == "POST":
+        form = UploadForm(flask.request.form)
+
+        if form.validate_on_submit():
+            subject_id = form.subject_id.data
+            data_type = form.data_type.data
+            time_point = form.time_point.data
+            uploaded_by = form.uploaded_by.data
+            files_uploaded = form.files_uploaded.data
+
+            print(f"Subject ID: {subject_id}")
+            print(f"Data Type: {data_type}")
+            print(f"Time Point: {time_point}")
+            print(f"Uploaded By: {uploaded_by}")
+
+            files_uuid = files_uploaded.split(",") if files_uploaded else []
+            files_uuid = [file_uuid for file_uuid in files_uuid if file_uuid != ""]
+            print(f"Files Uploaded: {files_uuid}")
+
+            submission = Submission(
+                subject_id=subject_id,  # type: ignore
+                data_type=data_type,  # type: ignore
+                event_name=time_point,
+                uploaded_by=uploaded_by,  # type: ignore
+            )
+
+            submission_id = submission.save()
+
+            for file_uuid in files_uuid:
+                submitted_files_map = SubmittedFilesMap(
+                    submission_id=submission_id, file_uuid=file_uuid
+                )
+                submitted_files_map.save()
+
+            flask.flash(f"Submission successful for {subject_id}", "success")
+            return flask.redirect("/")  # Redirect to the home page  # type: ignore
+        else:
+            flask.flash("Form validation failed", "danger")
+            return flask.redirect(
+                flask.request.url
+            )  # Redirect to the same page  # type: ignore
 
     return flask.Response(
         status=405,
@@ -87,9 +129,17 @@ def upload() -> flask.Response:
     dz_uuid = flask.request.form.get("dzuuid")
     if not dz_uuid:
         # Assume this file has not been chunked
-        file_path = storage_path / f"{uuid.uuid4()}_{werkzeug_utils.secure_filename(file.filename)}"  # type: ignore
+        file_uuid = uuid.uuid4()
+        file_name = werkzeug_utils.secure_filename(file.filename)  # type: ignore
+        file_path = storage_path / f"{file_uuid}_{file_name}"
         with open(file_path, "wb") as f:
             file.save(f)
+
+        uploaded_file = UploadedFile(
+            uuid=str(file_uuid), file_name=file_name, file_path=file_path
+        )
+        uploaded_file.save()
+
         return flask.Response(
             status=200,
             response="File uploaded successfully",
@@ -130,11 +180,18 @@ def upload() -> flask.Response:
 
     # Concat all the files into the final file when all are downloaded
     if completed:
-        file_path = storage_path / f"{dz_uuid}_{werkzeug_utils.secure_filename(file.filename)}"  # type: ignore
+        file_uuid = dz_uuid
+        file_name = werkzeug_utils.secure_filename(file.filename)  # type: ignore
+        file_path = storage_path / f"{file_uuid}_{file_name}"
         with open(file_path, "wb") as f:
             for file_number in range(total_chunks):
                 f.write((save_dir / str(file_number)).read_bytes())
         logger.info(f"{file.filename} has been uploaded")
+
+        uploaded_file = UploadedFile(
+            uuid=str(file_uuid), file_name=file_name, file_path=file_path
+        )
+        uploaded_file.save()
 
         cli.remove_directory(save_dir)
 
