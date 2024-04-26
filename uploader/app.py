@@ -25,6 +25,7 @@ from flask_wtf import CSRFProtect
 from uploader import orchestrator
 from uploader.helpers import utils, cli
 from uploader.models.user import User
+from uploader.helpers.config import config
 
 MODULE_NAME = "uploader.app"
 
@@ -122,10 +123,14 @@ if __name__ == "__main__":
     utils.configure_logging(
         config_file=config_file, module_name=MODULE_NAME, logger=logger
     )
+    config_params = config(path=config_file, section="flask")
+    flask_app_port = int(config_params["web_app_port"])
+
+    logger.info(f"Starting Flask app on port {flask_app_port}")
 
     app = create_app(config_file=config_file)
 
     bootstrap = Bootstrap5(app)
     csrf = CSRFProtect(app)
 
-    app.run(debug=True, port=15000, host="0.0.0.0")
+    app.run(debug=True, host="0.0.0.0", port=flask_app_port)
