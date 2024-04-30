@@ -2,11 +2,14 @@
 UploadedFile model
 """
 
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from uploader.helpers import db, utils
+
+logger = logging.getLogger(__name__)
 
 
 class UploadedFile:
@@ -132,6 +135,30 @@ class UploadedFile:
         )
 
         uploaded_file.file_size_mb = df.iloc[0]["file_size_mb"]
-        uploaded_file.uploaded_at = datetime.fromisoformat(df.iloc[0]["uploaded_at"])
+        uploaded_file.uploaded_at = datetime.fromisoformat(str(df.iloc[0]["uploaded_at"]))
 
         return uploaded_file
+
+    @staticmethod
+    def delete_file(uuid: str, config_file: Optional[Path] = None) -> None:
+        """
+        Deletes the uploaded file with the given UUID from disk.
+
+        Use SubmittedFilesMap.delete to delete the file from the database.
+
+        Args:
+            uuid (str): The UUID of the uploaded file.
+            config_file (Path): The path to the database configuration file.
+        """
+        if config_file is None:
+            config_file = utils.get_config_file_path()
+
+        uploaded_file = UploadedFile.find_by_uuid_query(
+            uuid=uuid, config_file=config_file
+        )
+
+        if uploaded_file is not None:
+            logger.info(f"Deleting file {uploaded_file.file_path}")
+            uploaded_file.file_path.unlink()
+
+        return None

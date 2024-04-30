@@ -17,6 +17,7 @@ from typing import DefaultDict, List
 import flask
 import flask_login
 from werkzeug import utils as werkzeug_utils
+import pandas as pd
 
 from uploader.blueprints.upload.models import UploadForm
 from uploader.models import Metadata
@@ -25,6 +26,7 @@ from uploader.models.user import User
 from uploader.models.uploaded_file import UploadedFile
 from uploader.models.submission import Submission
 from uploader.models.submitted_files_map import SubmittedFilesMap
+from uploader.blueprints.upload.models import UploadedFileView
 
 logger = logging.getLogger(__name__)
 
@@ -198,4 +200,90 @@ def upload() -> flask.Response:
     return flask.Response(
         status=200,
         response="Chunk uploaded successfully",
+    )
+
+
+@upload_bp.route("/history", methods=["GET"])
+@flask_login.login_required
+def history() -> flask.Response:
+    """
+    Returns the history of uploaded files.
+
+    Returns:
+        flask.Response: A response object.
+    """
+    metadata: Metadata = Metadata(flask.request)
+    current_user: User = flask_login.current_user
+
+    uploaded_files = SubmittedFilesMap.get_files_submitted_by_user(
+        user_name=current_user.username
+    )
+
+    uploaded_files_list: List[UploadedFileView] = []
+    for _, row in uploaded_files.iterrows():
+        uploaded_file_view = UploadedFileView(
+            uuid=row["uuid"],
+            subject_id=row["subject_id"],
+            data_type=row["data_type"],
+            event_name=row["event_name"],
+            file_name=row["file_name"],
+            file_size_mb=row["file_size_mb"],
+            uploaded_at=row["uploaded_at"],
+        )
+        uploaded_files_list.append(uploaded_file_view)
+
+    return flask.Response(
+        flask.render_template(
+            "history.html",
+            metadata=metadata,
+            title="History",
+            uploaded_files=uploaded_files_list,
+        )
+    )
+
+
+@upload_bp.route("/delete/<uuid>", methods=["GET"])
+@flask_login.login_required
+def delete(uuid: str) -> flask.Response:
+    """
+    Deletes an uploaded file.
+
+    Args:
+        uuid (str): The UUID of the file.
+
+    Returns:
+        flask.Response: A response object.
+    """
+    uploaded_file_df: pd.DataFrame = SubmittedFilesMap.get_file_by_uuid(uuid=uuid)
+    if uploaded_file_df.empty:
+        flask.flash("Invalid file UUID", "error")
+        return flask.redirect(flask.url_for("upload.history"))
+
+    SubmittedFilesMap.delete(uuid=uuid)
+
+    flask.flash("File deleted successfully", "success")
+    return flask.redirect(flask.url_for("upload.history"))
+
+
+@upload_bp.route("/download/<uuid>", methods=["GET"])
+@flask_login.login_required
+def retrieve(uuid: str) -> flask.Response:
+    """
+    Downloads an uploaded file.
+
+    Args:
+        uuid (str): The UUID of the file.
+
+    Returns:
+        flask.Response: A response object.
+    """
+    uploaded_file = UploadedFile.find_by_uuid_query(uuid=uuid)
+    if not uploaded_file:
+        flask.flash("Invalid file UUID", "error")
+        return flask.redirect(flask.url_for("upload.history"))
+
+    return flask.send_file(
+        uploaded_file.file_path,
+        as_attachment=True,
+        download_name=uploaded_file.file_name,
     )
