@@ -57,7 +57,10 @@ def upload_file() -> flask.Response:
 
         return flask.Response(
             flask.render_template(
-                "form.html", metadata=metadata, title="Upload", form=form
+                "form.html",
+                metadata=metadata,
+                title="Upload",
+                form=form,
             )
         )
     elif flask.request.method == "POST":
@@ -70,14 +73,8 @@ def upload_file() -> flask.Response:
             uploaded_by = form.uploaded_by.data
             files_uploaded = form.files_uploaded.data
 
-            print(f"Subject ID: {subject_id}")
-            print(f"Data Type: {data_type}")
-            print(f"Time Point: {time_point}")
-            print(f"Uploaded By: {uploaded_by}")
-
             files_uuid = files_uploaded.split(",") if files_uploaded else []
             files_uuid = [file_uuid for file_uuid in files_uuid if file_uuid != ""]
-            print(f"Files Uploaded: {files_uuid}")
 
             submission = Submission(
                 subject_id=subject_id,  # type: ignore
@@ -97,15 +94,20 @@ def upload_file() -> flask.Response:
             flask.flash(f"Submission successful for {subject_id}", "success")
             return flask.redirect("/")  # Redirect to the home page  # type: ignore
         else:
-            flask.flash("Form validation failed", "danger")
-            return flask.redirect(
-                flask.request.url
-            )  # Redirect to the same page  # type: ignore
-
-    return flask.Response(
-        status=405,
-        response="Method Not Allowed",
-    )
+            flask.flash("Form not submitted", "warning")
+            return flask.Response(
+                flask.render_template(
+                    "form.html",
+                    metadata=metadata,
+                    title="Upload",
+                    form=form,
+                )
+            )
+    else:
+        return flask.Response(
+            status=405,
+            response="Method Not Allowed",
+        )
 
 
 @upload_bp.route("/upload", methods=["POST"])

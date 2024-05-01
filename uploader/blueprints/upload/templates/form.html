@@ -60,10 +60,16 @@
             headers: { "X-CSRF-Token": "{{ csrf_token() }}" },
             init: function () {
                 this.on("addedfile", function (file) {
+                    if (file.mock) {
+                        return;
+                    }
                     document.getElementById('upload-btn').removeAttribute('disabled');
                 });
 
                 this.on("complete", function (file) {
+                    if (file.mock) {
+                        return;
+                    }
                     console.log(file.name + ' ✅ ' + file.upload.uuid);
                     addToast(
                         'File Uploaded',
@@ -86,6 +92,7 @@
 
                     document.getElementById('log').innerHTML += '<tr><td>' + file.name + '</td><td>✅</td></tr>';
                     document.getElementById('files_uploaded').value += file.upload.uuid + ',';
+                    document.getElementById('files_uploaded_metadata').value += '{"name":"' + file.name + '","uuid":"' + file.upload.uuid + '", "size":"' + file.size + '"},';
                 });
                 this.on("error", function (file, message) {
                     console.log(file.name + ' ❌ ' + message);
@@ -93,6 +100,27 @@
 
                     document.getElementById('log').innerHTML += '<tr><td>' + file.name + '</td><td>❌ ' + message + '</td></tr>';
                 });
+
+                // Add completed files to the list
+                var files = processMetadataToFiles();
+                console.log('Adding completed files to the list. Files: ' + files);
+                console.log(files);
+
+                if (files.length != 0) {
+                    document.getElementById('log').removeAttribute('hidden');
+                }
+
+                for (var i = 0; i < files.length; i++) {
+                    var file = files[i];
+                    console.log('Adding completed file to the list: ' + file);
+                    var mockFile = { name: file.name, size: file.size, mock: true, };
+                    this.emit("addedfile", mockFile);
+                    this.emit("complete", mockFile);
+
+                    document.getElementById('log').innerHTML += '<tr><td>' + file.name + '</td><td>✅</td></tr>';
+                }
+
+                console.log('Added completed files to the list.');
             }
         };
 
@@ -108,6 +136,19 @@
         dz.processQueue();
     }
 
+    /**
+     * @returns {Array} - Array of files extracted from metadata
+     */
+    function processMetadataToFiles() {
+        var metadata = document.getElementById('files_uploaded_metadata').value;
+        // Remove trailing comma
+        metadata = metadata.slice(0, -1);
+        metadata = '[' + metadata + ']';
+        var files = JSON.parse(metadata);
+
+        return files;
+    }
+
     init();
 
     document.getElementById('upload-btn').addEventListener('click', upload);
@@ -119,6 +160,11 @@
     });
 
     document.getElementById('uploaded_by').readOnly = true;
-
 </script>
+
+{% if form.errors %}
+<script>
+    document.getElementById('submit-btn').removeAttribute('disabled');
+</script>
+{% endif %}
 {% endblock %}

@@ -29,18 +29,20 @@ class UploadForm(FlaskForm):
     data_type = wtforms.SelectField(
         "Data Type",
         choices=[
+            ("", "Select an option"),
             ("eeg", "EEG"),
             ("mri", "MRI"),
             ("video", "Video"),
             ("other", "Other"),
         ],
-        validators=[wtforms.validators.DataRequired()],
+        validators=[wtforms.validators.DataRequired(message="Please select a data type")],
         description="Select the type of data you are uploading",
     )
 
     time_point = wtforms.SelectField(
         "Event Name",
         choices=[
+            ("", "Select an option"),
             ("baseline", "Baseline"),
             ("Month 1", "Month 1"),
             ("Month 3", "Month 3"),
@@ -49,7 +51,7 @@ class UploadForm(FlaskForm):
             ("Month 24", "Month 24"),
             ("Other", "Other"),
         ],
-        validators=[wtforms.validators.DataRequired()],
+        validators=[wtforms.validators.DataRequired(message="Please select an event name")],
         description="Select the event name (Must match REDCap event name)",
     )
 
@@ -66,6 +68,10 @@ class UploadForm(FlaskForm):
 
     files_uploaded = wtforms.HiddenField(
         "Files Uploaded",
+    )
+
+    files_uploaded_metadata = wtforms.HiddenField(
+        "Files Uploaded Metadata",
     )
 
 
