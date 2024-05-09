@@ -25,7 +25,8 @@
 <table id="log" class="mt-3 table table-striped" hidden>
     <thead>
         <tr>
-            <th>File</th>
+            <th>File Name</th>
+            <th>Size</th>
             <th>Status</th>
         </tr>
     </thead>
@@ -88,17 +89,11 @@
                         upload();
                     }
 
-                    // document.getElementById('log').innerHTML += '<p> ' + file.name + ' ✅</p>';
-
-                    document.getElementById('log').innerHTML += '<tr><td>' + file.name + '</td><td>✅</td></tr>';
-                    document.getElementById('files_uploaded').value += file.upload.uuid + ',';
-                    document.getElementById('files_uploaded_metadata').value += '{"name":"' + file.name + '","uuid":"' + file.upload.uuid + '", "size":"' + file.size + '"},';
+                    displayFileAfterUpload(file.name, file.upload.uuid, file.size, 'success');
                 });
                 this.on("error", function (file, message) {
                     console.log(file.name + ' ❌ ' + message);
-                    // document.getElementById('log').innerHTML += '<p> ' + file.name + ' ❌ ' + message + '</p>';
-
-                    document.getElementById('log').innerHTML += '<tr><td>' + file.name + '</td><td>❌ ' + message + '</td></tr>';
+                    displayFileAfterUpload(file.name, file.upload.uuid, file.size, 'error');
                 });
 
                 // Add completed files to the list
@@ -117,7 +112,7 @@
                     this.emit("addedfile", mockFile);
                     this.emit("complete", mockFile);
 
-                    document.getElementById('log').innerHTML += '<tr><td>' + file.name + '</td><td>✅</td></tr>';
+                    displayFileAfterUpload(file.name, file.uuid, file.size, 'success');
                 }
 
                 console.log('Added completed files to the list.');
@@ -147,6 +142,21 @@
         var files = JSON.parse(metadata);
 
         return files;
+    }
+
+    function displayFileAfterUpload(fileName, fileUuid, fileSize, uploadStatus) {
+        if (uploadStatus == 'success') {
+            status = '✅';
+        } else {
+            status = '❌';
+        }
+        fileSizeMb = (fileSize / (1024 * 1024)).toFixed(2);
+        document.getElementById('log').innerHTML += '<tr><td>' + fileName + '</td><td>' + fileSizeMb + ' MB</td><td>' + status + '</td></tr>';
+
+        if (uploadStatus == 'success') {
+            document.getElementById('files_uploaded').value += fileUuid + ',';
+            document.getElementById('files_uploaded_metadata').value += '{"name":"' + fileName + '","uuid":"' + fileUuid + '", "size":"' + fileSize + '"},';
+        }
     }
 
     init();
