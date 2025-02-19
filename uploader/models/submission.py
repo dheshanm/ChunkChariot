@@ -4,7 +4,7 @@ Submission model
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from uploader.helpers import db, utils
 
@@ -25,14 +25,16 @@ class Submission:
         self, subject_id: str, data_type: str, event_name: str, uploaded_by: str
     ):
         self.id = None
-        self.subject_id = subject_id
-        self.data_type = data_type
-        self.event_name = event_name
         self.uploaded_by = uploaded_by
         self.submission_timestamp = datetime.now()
+        self.submission_data = {
+            "subject_id": subject_id,
+            "data_type": data_type,
+            "event_name": event_name,
+        }
 
     def __repr__(self):
-        return f"<Submission {self.subject_id}>"
+        return f"<Submission {self.submission_data}>"
 
     def __str__(self):
         return self.__repr__()
@@ -49,9 +51,7 @@ class Submission:
         sql_query = """
         CREATE TABLE IF NOT EXISTS submissions (
             id SERIAL PRIMARY KEY,
-            subject_id TEXT,
-            data_type TEXT NOT NULL,
-            event_name TEXT NOT NULL,
+            submission_data JSONB,
             uploaded_by TEXT NOT NULL REFERENCES users(username),
             submission_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -80,8 +80,8 @@ class Submission:
         """
 
         sql_query = f"""
-        INSERT INTO submissions (subject_id, data_type, event_name, uploaded_by)
-        VALUES ('{self.subject_id}', '{self.data_type}', '{self.event_name}', '{self.uploaded_by}')
+        INSERT INTO submissions (uploaded_by, submission_data)
+        VALUES ('{self.uploaded_by}', '{db.sanitize_json(self.submission_data)}')
         RETURNING id
         """
 
@@ -140,40 +140,3 @@ class Submission:
         submission.id = submission_id
 
         return submission
-
-    @staticmethod
-    def get_submissions_by_user(
-        username: str, config_file: Optional[Path] = None
-    ) -> List["Submission"]:
-        """
-        Retrieves all submissions made by a user.
-
-        Args:
-            username (str): The username of the user.
-            config_file (Path): Path to the config file.
-
-        Returns:
-            Optional[Submission]: The submission object or None if not found.
-        """
-        if not config_file:
-            config_file = utils.get_config_file_path()
-
-        query = f"SELECT * FROM submissions WHERE uploaded_by = '{username}'"
-        result_df = db.execute_sql(config_file=config_file, query=query)
-
-        if result_df.empty:
-            return []
-
-        submissions: List[Submission] = []
-        for _, row in result_df.iterrows():
-            submission = Submission(
-                subject_id=row["subject_id"],
-                data_type=row["data_type"],
-                event_name=row["event_name"],
-                uploaded_by=row["uploaded_by"],
-            )
-
-            submission.id = row["id"]
-            submissions.append(submission)
-
-        return submissions

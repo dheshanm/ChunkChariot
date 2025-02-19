@@ -7,35 +7,48 @@ Allows uploading files.
 # https://codecalamity.com/uploading-large-files-by-chunking-featuring-python-flask-and-dropzone-js/
 # https://stackoverflow.com/questions/44727052/handling-large-file-uploads-with-flask
 
-import collections
 import logging
-import threading
 import uuid
 from pathlib import Path
-from typing import DefaultDict, List
+from typing import Any, Dict, List
 
 import flask
 import flask_login
-from werkzeug import utils as werkzeug_utils
 import pandas as pd
+from werkzeug import utils as werkzeug_utils
 
-from uploader.blueprints.upload.models import UploadForm
-from uploader.models import Metadata
+from uploader.blueprints.upload.models import UploadedFileView, UploadForm
 from uploader.helpers import cli
-from uploader.models.user import User
-from uploader.models.uploaded_file import UploadedFile
+from uploader.models import Metadata
 from uploader.models.submission import Submission
 from uploader.models.submitted_files_map import SubmittedFilesMap
-from uploader.blueprints.upload.models import UploadedFileView
+from uploader.models.uploaded_file import UploadedFile
+from uploader.models.user import User
 
 logger = logging.getLogger(__name__)
-
-lock = threading.Lock()
-chucks: DefaultDict[str, List[int]] = collections.defaultdict(list)
 
 upload_bp = flask.Blueprint(
     "upload", __name__, url_prefix="/upload", template_folder="templates"
 )
+
+
+def is_download_complete(dz_path: str, total_chunks: int) -> bool:
+    """
+    Check if the download is complete by verifying the number of chunk files.
+
+    Args:
+        dz_path (str): The directory path where chunk files are stored.
+        total_chunks (int): The total number of chunks expected.
+
+    Returns:
+        bool: True if the number of chunk files matches the total_chunks, False otherwise.
+    """
+    chunk_path: Path = Path(dz_path)
+    if not chunk_path.exists():
+        return False
+
+    chunk_files = [int(f.name) for f in chunk_path.iterdir()]
+    return len(chunk_files) == total_chunks
 
 
 @upload_bp.route("/", methods=["GET", "POST"])
@@ -142,7 +155,7 @@ def upload() -> flask.Response:
         uploaded_file = UploadedFile(
             uuid=str(file_uuid), file_name=file_name, file_path=file_path
         )
-        uploaded_file.save()
+        uploaded_file.save(config_file=flask.current_app.config["CONFIG_FILE"])
 
         return flask.Response(
             status=200,
@@ -174,16 +187,15 @@ def upload() -> flask.Response:
         save_dir.mkdir(exist_ok=True, parents=True)
 
     # Save the individual chunk
-    with open(save_dir / str(flask.request.form["dzchunkindex"]), "wb") as f:
+    with open(save_dir / str(current_chunk), "wb") as f:
         file.save(f)
+        logger.debug(f"Uploading chunk {current_chunk} of {total_chunks}")
 
-    # See if we have all the chunks downloaded
-    with lock:
-        chucks[dz_uuid].append(current_chunk)
-        completed = len(chucks[dz_uuid]) == total_chunks
+    completed = is_download_complete(str(save_dir), total_chunks)
 
     # Concat all the files into the final file when all are downloaded
     if completed:
+        logger.debug(f"All chunks downloaded for {file.filename}. Concatenating...")
         file_uuid = dz_uuid
         file_name = werkzeug_utils.secure_filename(file.filename)  # type: ignore
         file_path = storage_path / f"{file_uuid}_{file_name}"
@@ -223,11 +235,12 @@ def history() -> flask.Response:
 
     uploaded_files_list: List[UploadedFileView] = []
     for _, row in uploaded_files.iterrows():
+        submission_data: Dict[str, Any] = row["submission_data"]
         uploaded_file_view = UploadedFileView(
             uuid=row["uuid"],
-            subject_id=row["subject_id"],
-            data_type=row["data_type"],
-            event_name=row["event_name"],
+            subject_id=submission_data["subject_id"],
+            data_type=submission_data["data_type"],
+            event_name=submission_data["event_name"],
             file_name=row["file_name"],
             file_size_mb=row["file_size_mb"],
             uploaded_at=row["uploaded_at"],
