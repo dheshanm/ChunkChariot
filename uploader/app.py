@@ -67,7 +67,7 @@ def create_app(config_file: Path) -> flask.Flask:
         Returns:
             User: The user object.
         """
-        logger.debug(f"Loading user: {user_email}")
+        # logger.debug(f"Loading user: {user_email}")
         return User.find_by_email_query(user_email)  # type: ignore
 
     storage_path = orchestrator.get_storage_path(config_file=config_file)
@@ -113,6 +113,9 @@ def create_app(config_file: Path) -> flask.Flask:
             max_age=86400,
         )
 
+    Bootstrap5(app)
+    CSRFProtect(app)
+
     return app
 
 
@@ -128,9 +131,5 @@ if __name__ == "__main__":
 
     logger.info(f"Starting Flask app on port {flask_app_port}")
 
-    app = create_app(config_file=config_file)
-
-    bootstrap = Bootstrap5(app)
-    csrf = CSRFProtect(app)
-
+    app: flask.Flask = create_app(config_file=config_file)
     app.run(debug=True, host="0.0.0.0", port=flask_app_port)
