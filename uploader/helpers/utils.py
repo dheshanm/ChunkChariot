@@ -34,6 +34,8 @@ def configure_logging(config_file: Path, module_name: str, logger: logging.Logge
     """
     Configures logging for a given module using the specified configuration file.
 
+    Rotates the log file if it exceeds 10MB.
+
     Args:
         config_file (str): The path to the configuration file.
         module_name (str): The name of the module to configure logging for.
@@ -44,6 +46,10 @@ def configure_logging(config_file: Path, module_name: str, logger: logging.Logge
     """
     log_params = config(config_file, "logging")
     log_file = Path(log_params[module_name])
+
+    if not log_file.is_absolute():
+        log_file = Path(cli.get_repo_root()) / log_file
+        log_file.parent.mkdir(parents=True, exist_ok=True)
 
     if log_file.exists() and log_file.stat().st_size > 10000000:  # 10MB
         archive_file = (
